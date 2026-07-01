@@ -279,6 +279,7 @@
           <div class="action-row">
             <button id="continue-game" class="primary">Continue</button>
             <button id="exit-game" class="secondary">Exit</button>
+            <button id="share-game" class="accent">Share Link</button>
           </div>
         </div>
       </section>
@@ -543,6 +544,32 @@
       });
       document.getElementById('exit-game').addEventListener('click', () => {
         showScreen('splash');
+      });
+      document.getElementById('share-game').addEventListener('click', async () => {
+        const shareUrl = 'https://arifeko6499-collab.github.io/ECC/animal-habitat-game/';
+        const shareText = 'Play Animal Habitat Adventure and learn about animal homes!';
+
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: 'Animal Habitat Adventure', text: shareText, url: shareUrl });
+            return;
+          } catch (error) {
+            // Fall back to clipboard copy
+          }
+        }
+
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          document.getElementById('share-game').textContent = 'Link copied';
+          setTimeout(() => {
+            document.getElementById('share-game').textContent = 'Share Link';
+          }, 1800);
+        } catch (error) {
+          document.getElementById('share-game').textContent = 'Share unavailable';
+          setTimeout(() => {
+            document.getElementById('share-game').textContent = 'Share Link';
+          }, 1800);
+        }
       });
       document.getElementById('back-to-menu').addEventListener('click', () => {
         showScreen('menu');
