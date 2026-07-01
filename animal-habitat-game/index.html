@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffd96b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Habitat Adventure" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <title>Animal Habitat Adventure</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --sky: #7ec8f3;
+        --grass: #7ccf6a;
+        --sun: #ffd96b;
+        --coral: #ff8b6b;
+        --pink: #ffb6c2;
+        --white: #fffdf8;
+        --ink: #2b3d4f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Poppins", sans-serif;
+        background: linear-gradient(180deg, var(--sky) 0%, #dff6ff 100%);
+        color: var(--ink);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .game-shell {
+        width: min(960px, 100vw - 24px);
+        background: rgba(255,255,255,0.86);
+        border-radius: 28px;
+        box-shadow: 0 20px 45px rgba(43,61,79,0.18);
+        overflow: hidden;
+        border: 3px solid rgba(255,255,255,0.7);
+      }
+      .hud {
+        display: flex;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: rgba(255,255,255,0.9);
+        align-items: center;
+      }
+      .pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--white);
+        box-shadow: inset 0 0 0 2px rgba(43,61,79,0.08);
+      }
+      .install-pill {
+        border: 0;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--sun);
+        box-shadow: inset 0 0 0 2px rgba(43,61,79,0.08);
+        cursor: pointer;
+      }
+      .screen {
+        display: none;
+        padding: 20px;
+      }
+      .screen.active { display: block; }
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 14px;
+      }
+      .card-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .mini-card {
+        background: white;
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 8px 18px rgba(43,61,79,0.12);
+        text-align: center;
+      }
+      button {
+        border: 0;
+        border-radius: 20px;
+        padding: 14px 16px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        color: var(--ink);
+        box-shadow: 0 10px 20px rgba(43,61,79,0.12);
+      }
+      .primary { background: var(--sun); }
+      .secondary { background: var(--grass); }
+      .accent { background: var(--coral); color: #fff; }
+      .action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+      .screen-nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .nav-btn {
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 0.95rem;
+        box-shadow: 0 8px 16px rgba(43,61,79,0.12);
+      }
+      .board {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(180deg, #e8f9ff 0%, #fefefe 100%);
+        border-radius: 24px;
+        padding: 18px;
+        min-height: 480px;
+      }
+      .board::before,
+      .board::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .board::before {
+        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.7), transparent 22%),
+          radial-gradient(circle at 80% 12%, rgba(255,215,92,0.4), transparent 24%),
+          radial-gradient(circle at 70% 85%, rgba(126,200,243,0.4), transparent 26%);
+        animation: drift 8s ease-in-out infinite alternate;
+      }
+      .board::after {
+        background-image: radial-gradient(circle, rgba(124,207,106,0.3) 1px, transparent 1px);
+        background-size: 24px 24px;
+        opacity: 0.55;
+        animation: drift 10s ease-in-out infinite alternate-reverse;
+      }
+      .animal-stage {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 220px;
+        margin-bottom: 16px;
+      }
+      .animal-display-shell {
+        position: relative;
+        width: 220px;
+        height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 32px;
+        padding: 18px;
+        background: linear-gradient(135deg, #fff7cc 0%, #ffc36d 45%, #8fd6ff 100%);
+        box-shadow: 0 20px 34px rgba(43,61,79,0.24), inset 0 -10px 18px rgba(0,0,0,0.14);
+        border: 3px solid rgba(255,255,255,0.85);
+        transform: perspective(700px) rotateX(8deg) rotateY(-12deg);
+        transform-style: preserve-3d;
+        animation: floatCard 2.6s ease-in-out infinite;
+      }
+      .animal-display-shell::before {
+        content: '';
+        position: absolute;
+        inset: 12px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.65), transparent);
+        transform: translateZ(14px);
+      }
+      .animal-display-shell::after {
+        content: '';
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        width: 92px;
+        height: 24px;
+        background: rgba(54,38,20,0.2);
+        filter: blur(10px);
+        border-radius: 999px;
+        transform: translateZ(-10px);
+      }
+      .animal-bubble {
+        font-size: 5.3rem;
+        animation: bob 2.4s ease-in-out infinite;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 4px 0 rgba(255,255,255,0.45), 0 10px 20px rgba(0,0,0,0.16);
+        transform: translateZ(24px);
+      }
+      .habitats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 12px;
+      }
+      .habitat-card {
+        padding: 14px 10px;
+        background: white;
+        border-radius: 16px;
+        text-align: center;
+        font-weight: 700;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 18px rgba(43,61,79,0.12);
+        cursor: pointer;
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+      .habitat-card:hover { transform: translateY(-2px); }
+      .habitat-card.shake { animation: shake 300ms ease-in-out; }
+      .status {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.9);
+        min-height: 48px;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+      }
+      .footer-note { margin-top: 12px; color: #4e6678; font-size: 0.95rem; }
+      .hidden { display: none !important; }
+      @keyframes bob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes floatCard {
+        0%, 100% { transform: perspective(700px) rotateX(8deg) rotateY(-12deg) translateY(0); }
+        50% { transform: perspective(700px) rotateX(8deg) rotateY(-12deg) translateY(-6px); }
+      }
+      @keyframes drift {
+        0% { transform: translate3d(0, 0, 0) scale(1); }
+        100% { transform: translate3d(-8px, -8px, 0) scale(1.04); }
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        50% { transform: translateX(8px); }
+        75% { transform: translateX(-5px); }
+      }
+      @media (max-width: 760px) {
+        .habitats { grid-template-columns: repeat(2, minmax(100px, 1fr)); }
+        .menu-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="hud">
+        <div class="pill" id="stars">⭐ 0</div>
+        <div class="pill" id="coins">🪙 0</div>
+        <div class="pill" id="level">Level 1</div>
+        <button class="install-pill" id="install-app-btn" type="button" style="display:none;">📲 Install</button>
+      </header>
+
+      <section id="splash" class="screen active">
+        <div class="board" style="text-align:center;">
+          <h1 style="font-size:2.2rem; margin-bottom:8px;">Animal Habitat Adventure</h1>
+          <p style="font-size:1.05rem; margin:0 0 18px;">A cheerful drag-and-drop journey for curious kids.</p>
+          <div style="font-size:4rem; margin-bottom:18px;">🦁🌿🐧</div>
+          <button class="primary" id="start-game">Play</button>
+        </div>
+      </section>
+
+      <section id="menu" class="screen">
+        <div class="board">
+          <h2 style="margin-top:0;">Adventure Menu</h2>
+          <div class="menu-grid">
+            <button id="play-menu" class="primary">Play</button>
+            <button id="learn-menu" class="secondary">Learn Mode</button>
+            <button id="collection-menu" class="accent">Animal Collection</button>
+            <button class="secondary">Achievements</button>
+            <button class="primary">Settings</button>
+            <button class="accent">Parents Corner</button>
+          </div>
+          <div class="action-row">
+            <button id="continue-game" class="primary">Continue</button>
+            <button id="exit-game" class="secondary">Exit</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="learn" class="screen">
+        <div class="board">
+          <h2 style="margin-top:0;">Learn Mode</h2>
+          <p>Tap an animal to hear its habitat and a fun fact.</p>
+          <div id="learn-list" class="card-list"></div>
+          <div class="action-row">
+            <button id="back-to-menu" class="secondary">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="collection" class="screen">
+        <div class="board">
+          <h2 style="margin-top:0;">Animal Collection</h2>
+          <div id="collection-list" class="card-list"></div>
+          <div class="action-row">
+            <button id="back-to-menu-2" class="secondary">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="gameplay" class="screen">
+        <div class="board">
+          <div class="screen-nav">
+            <button id="game-back-btn" class="secondary nav-btn">⬅ Back</button>
+            <button id="game-menu-btn" class="primary nav-btn">☰ Menu</button>
+          </div>
+          <div class="animal-stage">
+            <div class="animal-display-shell">
+              <div id="animal-display" class="animal-bubble">🦁</div>
+            </div>
+          </div>
+          <div class="habitats" id="habitat-options"></div>
+          <div id="feedback" class="status">Choose the habitat for this animal!</div>
+          <div class="footer-note" id="fun-fact">Tip: listen carefully and think about where the animal lives.</div>
+        </div>
+      </section>
+
+      <section id="reward" class="screen">
+        <div class="board" style="text-align:center;">
+          <div class="screen-nav">
+            <button id="reward-back-btn" class="secondary nav-btn">⬅ Back</button>
+            <button id="reward-menu-btn" class="primary nav-btn">☰ Menu</button>
+          </div>
+          <h2 id="reward-title">Great Job!</h2>
+          <p id="reward-message">You earned a star and coins.</p>
+          <div style="font-size:3rem; margin: 16px 0;">✨🎉</div>
+          <button id="next-level" class="primary">Next Level</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="./game-model.js"></script>
+    <script>
+      const state = createGameModel();
+      let audioContext = null;
+      let musicInterval = null;
+      const animalToneMap = {
+        'lion-roar': [440, 660, 392],
+        'penguin-call': [523, 659, 784],
+        'dolphin-click': [659, 784, 880],
+        'camel-grunt': [330, 392, 440],
+        'frog-croak': [261, 329, 392],
+        'monkey-chatter': [440, 523, 659],
+        'koala-hum': [294, 392, 494],
+        'bear-growl': [220, 262, 330],
+        'octopus-squirt': [392, 523, 587],
+        'rabbit-squeak': [587, 659, 784],
+        'owl-hoo': [330, 392, 494],
+        'hippo-grunt': [220, 294, 392]
+      };
+      const screens = {
+        splash: document.getElementById('splash'),
+        menu: document.getElementById('menu'),
+        learn: document.getElementById('learn'),
+        collection: document.getElementById('collection'),
+        gameplay: document.getElementById('gameplay'),
+        reward: document.getElementById('reward')
+      };
+      const starsEl = document.getElementById('stars');
+      const coinsEl = document.getElementById('coins');
+      const levelEl = document.getElementById('level');
+      const animalDisplay = document.getElementById('animal-display');
+      const habitatOptions = document.getElementById('habitat-options');
+      const feedback = document.getElementById('feedback');
+      const funFact = document.getElementById('fun-fact');
+      const rewardTitle = document.getElementById('reward-title');
+      const rewardMessage = document.getElementById('reward-message');
+      const learnList = document.getElementById('learn-list');
+      const collectionList = document.getElementById('collection-list');
+      const gameBackBtn = document.getElementById('game-back-btn');
+      const gameMenuBtn = document.getElementById('game-menu-btn');
+      const rewardBackBtn = document.getElementById('reward-back-btn');
+      const rewardMenuBtn = document.getElementById('reward-menu-btn');
+
+      function showScreen(name) {
+        Object.values(screens).forEach((screen) => screen.classList.remove('active'));
+        screens[name].classList.add('active');
+      }
+
+      function ensureAudio() {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+          audioContext.resume().catch(() => {});
+        }
+        return audioContext;
+      }
+
+      function playTone(freq, duration = 0.18, type = 'triangle', volume = 0.06) {
+        const ctx = ensureAudio();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+        gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + duration);
+      }
+
+      function playAnimalSound(soundName) {
+        const tones = animalToneMap[soundName] || [440, 660];
+        tones.forEach((tone, index) => {
+          setTimeout(() => playTone(tone, 0.16 + index * 0.01, 'triangle', 0.06), index * 70);
+        });
+      }
+
+      function playSound(soundName) {
+        if (!soundName) return;
+        if (animalToneMap[soundName]) {
+          playAnimalSound(soundName);
+          return;
+        }
+      }
+
+      function startMusic() {
+        if (musicInterval) return;
+        const melody = [261.63, 329.63, 392.0, 523.25];
+        let step = 0;
+        ensureAudio();
+        musicInterval = window.setInterval(() => {
+          playTone(melody[step % melody.length], 0.2, 'sine', 0.025);
+          step += 1;
+        }, 460);
+      }
+
+      function updateHud() {
+        starsEl.textContent = `⭐ ${state.stats.stars}`;
+        coinsEl.textContent = `🪙 ${state.stats.coins}`;
+        levelEl.textContent = `Level ${state.currentLevelIndex + 1}`;
+      }
+
+      function renderLevel() {
+        const level = state.levels[state.currentLevelIndex];
+        animalDisplay.textContent = level.emoji || '🐾';
+        feedback.textContent = 'Choose the habitat for this animal!';
+        funFact.textContent = `Fun fact: ${level.funFact}`;
+        habitatOptions.innerHTML = '';
+        const options = [...level.habitats].sort(() => Math.random() - 0.5);
+        options.forEach((habitat) => {
+          const btn = document.createElement('button');
+          btn.className = 'habitat-card';
+          btn.textContent = habitat;
+          btn.addEventListener('click', () => handleSelection(habitat));
+          habitatOptions.appendChild(btn);
+        });
+        startMusic();
+        playSound(level.sound);
+        updateHud();
+      }
+
+      function renderLearnMode() {
+        learnList.innerHTML = '';
+        state.levels.forEach((level) => {
+          const card = document.createElement('button');
+          card.className = 'mini-card';
+          card.innerHTML = `<strong>${level.animal}</strong><br />${level.correctHabitat}`;
+          card.addEventListener('click', () => {
+            feedback.textContent = `${level.animal} lives in the ${level.correctHabitat}. ${level.funFact}`;
+            showScreen('gameplay');
+          });
+          learnList.appendChild(card);
+        });
+      }
+
+      function renderCollection() {
+        collectionList.innerHTML = '';
+        state.stats.unlockedAnimals.forEach((animalName) => {
+          const card = document.createElement('div');
+          card.className = 'mini-card';
+          const level = state.levels.find((item) => item.animal === animalName);
+          card.innerHTML = `<strong>${animalName}</strong><br />${level ? level.correctHabitat : 'Unlocked'}`;
+          collectionList.appendChild(card);
+        });
+      }
+
+      function handleSelection(selection) {
+        const level = state.levels[state.currentLevelIndex];
+        const result = checkAnswer({ selectedHabitat: selection, correctHabitat: level.correctHabitat });
+        const selectedButton = Array.from(habitatOptions.children).find((btn) => btn.textContent === selection);
+        if (selectedButton) {
+          selectedButton.classList.add('shake');
+          setTimeout(() => selectedButton.classList.remove('shake'), 320);
+        }
+        if (result.correct) {
+          state.stats.stars += 1;
+          state.stats.coins += 100;
+          if (!state.stats.unlockedAnimals.includes(level.animal)) {
+            state.stats.unlockedAnimals.push(level.animal);
+          }
+          playTone(880, 0.12, 'square', 0.06);
+          feedback.textContent = 'Great Job!';
+          rewardTitle.textContent = `Amazing! ${level.animal}`;
+          rewardMessage.textContent = `${level.animal} belongs in the ${level.correctHabitat}. You unlocked a new animal card.`;
+          showScreen('reward');
+        } else {
+          playTone(220, 0.12, 'sawtooth', 0.04);
+          feedback.textContent = 'Try Again!';
+        }
+        updateHud();
+      }
+
+      document.getElementById('start-game').addEventListener('click', () => {
+        startMusic();
+        showScreen('menu');
+      });
+      document.getElementById('play-menu').addEventListener('click', () => {
+        renderLevel();
+        showScreen('gameplay');
+      });
+      document.getElementById('learn-menu').addEventListener('click', () => {
+        renderLearnMode();
+        showScreen('learn');
+      });
+      document.getElementById('collection-menu').addEventListener('click', () => {
+        renderCollection();
+        showScreen('collection');
+      });
+      document.getElementById('continue-game').addEventListener('click', () => {
+        renderLevel();
+        showScreen('gameplay');
+      });
+      gameBackBtn.addEventListener('click', () => {
+        showScreen('menu');
+      });
+      gameMenuBtn.addEventListener('click', () => {
+        showScreen('menu');
+      });
+      rewardBackBtn.addEventListener('click', () => {
+        showScreen('menu');
+      });
+      rewardMenuBtn.addEventListener('click', () => {
+        showScreen('menu');
+      });
+      document.getElementById('exit-game').addEventListener('click', () => {
+        showScreen('splash');
+      });
+      document.getElementById('back-to-menu').addEventListener('click', () => {
+        showScreen('menu');
+      });
+      document.getElementById('back-to-menu-2').addEventListener('click', () => {
+        showScreen('menu');
+      });
+      document.getElementById('next-level').addEventListener('click', () => {
+        state.currentLevelIndex = Math.min(state.currentLevelIndex + 1, state.levels.length - 1);
+        renderLevel();
+        showScreen('gameplay');
+      });
+
+      const installBtn = document.getElementById('install-app-btn');
+      let deferredPrompt = null;
+
+      window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+        installBtn.style.display = 'inline-flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+          installBtn.textContent = 'Use Chrome menu';
+          return;
+        }
+
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        installBtn.textContent = outcome === 'accepted' ? 'Installed' : 'Later';
+        installBtn.disabled = true;
+        deferredPrompt = null;
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installBtn.textContent = 'Installed';
+        installBtn.disabled = true;
+        installBtn.style.display = 'none';
+      });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="capacitor_color_primary">#ffd96b</color>
+  <color name="capacitor_color_primary_dark">#7ec8f3</color>
+</resources>
