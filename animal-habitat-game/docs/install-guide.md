@@ -5,4 +5,4 @@
 3. Choose Install app or Add to Home screen.
 4. The game will be installed and available like a native app.
 
-Share link: https://htmlpreview.github.io/?url=https://github.com/arifeko6499-collab/ECC/raw/gh-pages/animal-habitat-game/index.html
+Share link: https://raw.githubusercontent.com/arifeko6499-collab/ECC/gh-pages/animal-habitat-game/index.html
